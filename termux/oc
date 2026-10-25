@@ -2,6 +2,12 @@
 # oc: start / resume OpenCode inside tmux. Runs in Termux; OpenCode itself runs in the Debian proot.
 # Usage: oc [new NAME | ls | kill [NAME] | shell | update | key ... | mirror | autostart on|off | help]
 set -u
+# `oc` is a Termux command. Inside the Debian shell (prompt "root@localhost") it cannot work, so say so.
+if [ -f /etc/debian_version ]; then
+  echo "You are inside the Debian shell (the prompt says root@localhost)."
+  echo "Type  exit  to get back to Termux (the prompt ends in \$), then run oc again."
+  exit 1
+fi
 DISTRO=debian
 SESSION=opencode
 PD="${PREFIX:-/data/data/com.termux/files/usr}/var/lib/proot-distro"
