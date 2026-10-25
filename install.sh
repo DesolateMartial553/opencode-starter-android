@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/DesolateMartial553/opencode-starter-android/main/install.sh | bash
 #
 # What it does:
-#   1. installs tmux, proot-distro, curl, git in Termux
+#   1. installs tmux and proot-distro in Termux
 #   2. installs a small Debian (no root needed) and OpenCode inside it
 #   3. copies this kit's config, research skills and agents (backing up anything it replaces)
 #   4. sets up tmux, a phone extra-keys row and the `oc` launcher in Termux
@@ -91,9 +91,13 @@ main() {
   local ROOTFS="$PFX/var/lib/proot-distro/installed-rootfs/$DISTRO"
 
   # --- 1. Termux packages ------------------------------------------------------------------
-  say "[1/5] Installing Termux packages (tmux, proot-distro, curl, git)"
-  run pkg update -y
-  run env DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::=--force-confold tmux proot-distro curl git
+  say "[1/5] Installing Termux packages (tmux, proot-distro)"
+  # Use apt-get, not `pkg`: on a fresh Termux `pkg update` auto-picks a random mirror (it once chose a
+  # Chinese university server at ~5 kB/s). apt-get keeps Termux's default fast mirror.
+  # --no-install-recommends: avoids ~600 MB of unneeded extras (clang, llvm, python, openssh...).
+  # curl is already in Termux and git is only needed inside Debian.
+  run apt-get update -y
+  run env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::=--force-confold tmux proot-distro curl
   if [ ! -d "$HOME/storage/shared" ]; then
     note "asking Android for storage access: tap ALLOW on the pop-up (lets reports be saved where your file manager can see them)"
     run termux-setup-storage

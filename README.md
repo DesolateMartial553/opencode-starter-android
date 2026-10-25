@@ -70,6 +70,8 @@ tmux is what keeps OpenCode alive. The prefix is **Ctrl-b**: tap `CTRL` on the e
 - First start inside Debian can take 10-20 seconds.
 
 ## Troubleshooting
+- **Downloads crawl (a few kB/s, ETA of hours)** - press `Ctrl-C`, run `termux-change-repo`, choose
+  *Single mirror* or *Mirror group* and pick **default** (or a group near you), then run the installer again.
 - **`oc: command not found`** - close and reopen Termux, or re-run the installer.
 - **Installer stopped halfway** - run it again; it is safe to repeat and keeps backups.
 - **"Allow storage" was missed** - run `termux-setup-storage`, then re-run the installer.
