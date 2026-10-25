@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # oc: start / resume OpenCode inside tmux. Runs in Termux; OpenCode itself runs in the Debian proot.
-# Usage: oc [new NAME | ls | kill [NAME] | shell | update | key ... | mirror | autostart on|off | help]
+# Usage: oc [new NAME | ls | kill [NAME] | shell | update | key ... | mirror | autostart on|off | doctor | help]
 set -u
 # `oc` is a Termux command. Inside the Debian shell (prompt "root@localhost") it cannot work, so say so.
 if [ -f /etc/debian_version ]; then
@@ -23,7 +23,8 @@ bind_args() {
 
 # the command tmux runs: log in to Debian and start OpenCode via /root/.oc-start.sh
 start_cmd() {
-  printf '%s' "proot-distro login $DISTRO --shared-tmp $(bind_args) -- bash -l /root/.oc-start.sh"
+  # if OpenCode stops with an error, keep the window open so the message can be read (and screenshotted)
+  printf '%s' "proot-distro login $DISTRO --shared-tmp $(bind_args) -- bash -l /root/.oc-start.sh; rc=\$?; if [ \$rc -ne 0 ]; then echo; echo \"OpenCode stopped (code \$rc). Run  oc doctor  for a health check, then press Enter.\"; read -r _; fi"
 }
 
 wake_lock() {
@@ -119,6 +120,35 @@ cmd_autostart() {
   esac
 }
 
+# ---- oc doctor: check everything and print a report you can screenshot --------------------------
+cmd_doctor() {
+  local bad=0 pf
+  say() { printf '  %-5s %s\n' "$1" "$2"; }
+  good() { say "OK" "$1"; }
+  fail() { say "FAIL" "$1"; bad=$((bad + 1)); }
+  echo "OpenCode health check ($(date '+%H:%M'))"
+  if command -v tmux >/dev/null 2>&1; then good "tmux $(tmux -V 2>/dev/null | cut -d' ' -f2)"; else fail "tmux is missing: run the installer again"; fi
+  if command -v proot-distro >/dev/null 2>&1; then good "proot-distro $(proot-distro --version 2>/dev/null | head -n1)"; else fail "proot-distro is missing: run the installer again"; fi
+  if [ -d "$ROOTFS/root" ]; then good "Debian found ($ROOTFS)"; else fail "Debian not found: run the installer again"; fi
+  if [ -x "$ROOTFS/root/.oc-start.sh" ]; then good "launcher script present"; else fail "launcher script missing in Debian: run the installer again"; fi
+  if [ -f "$CONF" ]; then good "OpenCode config present"; else fail "OpenCode config missing: run the installer again"; fi
+  if [ -x "$ROOTFS/root/.opencode/bin/opencode" ]; then good "OpenCode installed"; else fail "OpenCode is not installed inside Debian: run the installer again"; fi
+  if [ -f "$HOME/.tmux.conf" ] && [ -f "$HOME/.tmux-menu.conf" ]; then good "tap menu installed"; else fail "tap menu files missing: run the installer again"; fi
+  if [ -d "$HOME/storage/shared" ]; then good "phone storage connected (reports go to the Research folder)"; else say "WARN" "phone storage not connected: run termux-setup-storage"; fi
+  pf="${PREFIX:-/data/data/com.termux/files/usr}/etc/apt/sources.list"
+  [ -f "$pf" ] && say "info" "download mirror: $(sed -n 's/^deb \([^ ]*\) .*/\1/p' "$pf" | head -n1 | sed 's#https://##')"
+  if [ -f "$KEYFILE" ]; then say "info" "keys saved: $(grep -c '^export ' "$KEYFILE")"; else say "info" "no API keys saved (free models still work)"; fi
+  if [ "$bad" -eq 0 ] && [ -x "$ROOTFS/root/.opencode/bin/opencode" ]; then
+    echo "  ...asking the free model to say hi (takes up to a minute)"
+    local out
+    out=$(timeout 90 proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode --version; opencode run "reply with the single word ok"' 2>&1 | tail -n 6) || true
+    if printf '%s' "$out" | grep -qiw 'ok'; then good "OpenCode answered"; else fail "OpenCode did not answer. Last output:"; printf '%s\n' "$out" | sed 's/^/        /'; fi
+  fi
+  echo
+  if [ "$bad" -eq 0 ]; then echo "All good. Start with:  oc"; else echo "$bad problem(s). Fix the FAIL lines above (usually: run the installer again). Screenshot this screen if you need help."; fi
+  [ "$bad" -eq 0 ]
+}
+
 cmd=${1:-start}
 case "$cmd" in
   start)  wake_lock; exec tmux new-session -A -s "$SESSION" -n OpenCode "$(start_cmd)" ;;   # -A: attach if it exists, else create
@@ -127,6 +157,7 @@ case "$cmd" in
   kill)   tmux kill-session -t "${2:-$SESSION}" ;;
   key)    shift; cmd_key "$@" ;;
   autostart) shift; cmd_autostart "$@" ;;
+  doctor) cmd_doctor ;;
   mirror) exec bash "${PREFIX:-/data/data/com.termux/files/usr}/bin/oc-mirror" --update "${@:2}" ;;
   shell)  exec proot-distro login "$DISTRO" --shared-tmp $(bind_args) ;;
   update) exec proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode upgrade || npm install -g opencode-ai@latest' ;;
@@ -141,6 +172,7 @@ oc key NAME      add or replace one key (gemini | openrouter | tavily | firecraw
 oc key list      show which keys are set
 oc key remove N  delete a key
 oc mirror        re-test and switch to the fastest Termux download mirror
+oc doctor        check that everything works and print a report (screenshot it for help)
 oc autostart on  open OpenCode whenever Termux opens (off: back to a normal prompt)
 oc shell         open a plain Debian shell
 oc update        update OpenCode

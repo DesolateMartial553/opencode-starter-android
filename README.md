@@ -89,6 +89,7 @@ The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the k
 | Plain Debian shell | `oc shell` |
 | Update OpenCode | `oc update` |
 | Re-test and use the fastest download mirror | `oc mirror` |
+| Health check: tells you what is wrong (screenshot it when asking for help) | `oc doctor` |
 | Open OpenCode every time Termux opens (on / off) | `oc autostart on` / `oc autostart off` |
 | Add / list / remove API keys | `oc key` / `oc key list` / `oc key remove NAME` |
 
