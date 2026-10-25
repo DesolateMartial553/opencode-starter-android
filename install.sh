@@ -146,7 +146,14 @@ main() {
   if [ -d "$ROOTFS" ]; then
     ok "Debian already installed"
   else
-    run proot-distro install "$DISTRO"
+    # the ~50 MB image comes from GitHub; mobile connections often drop mid-download, so retry a few times
+    tries=0
+    until run proot-distro install "$DISTRO"; do
+      tries=$((tries + 1))
+      [ "$tries" -ge 5 ] && die "the Debian download keeps dropping (a weak or switching connection). Move closer to the router or use Wi-Fi, then run this installer again: it is safe to repeat."
+      note "download interrupted; trying again in 5 seconds ($tries of 4 retries used)"
+      sleep 5
+    done
   fi
 
   # config + launcher script go in before provisioning so `npm install` can read package.json
