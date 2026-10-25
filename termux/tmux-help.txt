@@ -1,0 +1,33 @@
+OPENCODE ON YOUR PHONE: QUICK HELP            (q = close this page)
+==========================================================================
+
+THE BAR AT THE TOP (just tap it)
+  ≡ MENU        every action in one list
+  1:OpenCode    your windows: tap one to switch to it
+  + NEW         open a new window
+  LEAVE         step away; OpenCode keeps working
+
+LEAVING AND COMING BACK
+  Tap LEAVE (or MENU > LEAVE). OpenCode keeps running in the background.
+  Come back later: close this, and in Termux type   oc
+
+SCROLLING
+  Swipe up/down with a finger. If it will not scroll: MENU > Scroll back,
+  then swipe. Press q to return to typing.
+
+KEYS (only if you prefer typing them; tap CTRL on the extra row, then b)
+  Ctrl-b Space   the menu            Ctrl-b ?   this help
+  Ctrl-b c       new window          Ctrl-b n / p   next / previous window
+  Ctrl-b |       split left/right    Ctrl-b -       split top/bottom
+  Ctrl-b z       full-screen a pane  Ctrl-b x       close a pane
+  Ctrl-b r       reload tmux settings
+
+IF SOMETHING LOOKS STUCK
+  Tap MENU > Scroll back, then q.   Or tap LEAVE and type  oc  again.
+  Stop everything: MENU > STOP everything (asks first).
+
+TYPE THESE IN TERMUX (not inside OpenCode)
+  oc            start / come back          oc ls     list sessions
+  oc new NAME   a second session           oc kill   end a session
+  oc key        add free API keys          oc mirror faster downloads
+  oc help       the full list

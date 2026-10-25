@@ -183,12 +183,14 @@ if command -v npm >/dev/null 2>&1; then (cd "$HOME/.config/opencode" && npm inst
   say "[4/5] Setting up tmux, the extra-keys row and the 'oc' command"
   if [ -n "$kit" ]; then
     install_file "$kit/termux/tmux.conf" "$HOME/.tmux.conf" 644
+    install_file "$kit/termux/tmux-menu.conf" "$HOME/.tmux-menu.conf" 644
+    install_file "$kit/termux/tmux-help.txt" "$HOME/.tmux-help.txt" 644
     install_file "$kit/termux/termux.properties" "$HOME/.termux/termux.properties" 644
     install_file "$kit/termux/oc" "$PFX/bin/oc" 755
     install_file "$kit/termux/fastest-mirror.sh" "$PFX/bin/oc-mirror" 755
     if command -v termux-reload-settings >/dev/null 2>&1; then run termux-reload-settings; fi
   else
-    note "[dry-run] would install ~/.tmux.conf, ~/.termux/termux.properties and $PFX/bin/oc"
+    note "[dry-run] would install ~/.tmux.conf (+ tap menu and help), ~/.termux/termux.properties and $PFX/bin/oc"
   fi
 
   # --- 5. optional API keys ----------------------------------------------------------------

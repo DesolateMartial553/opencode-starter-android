@@ -98,8 +98,8 @@ cmd_key() {
 
 cmd=${1:-start}
 case "$cmd" in
-  start)  wake_lock; exec tmux new-session -A -s "$SESSION" "$(start_cmd)" ;;   # -A: attach if it exists, else create
-  new)    wake_lock; exec tmux new-session -A -s "${2:?usage: oc new NAME}" "$(start_cmd)" ;;
+  start)  wake_lock; exec tmux new-session -A -s "$SESSION" -n OpenCode "$(start_cmd)" ;;   # -A: attach if it exists, else create
+  new)    wake_lock; exec tmux new-session -A -s "${2:?usage: oc new NAME}" -n OpenCode "$(start_cmd)" ;;
   ls)     tmux ls 2>/dev/null || echo "no sessions running" ;;
   kill)   tmux kill-session -t "${2:-$SESSION}" ;;
   key)    shift; cmd_key "$@" ;;

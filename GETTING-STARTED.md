@@ -4,7 +4,8 @@
 In Termux type `oc`. After a few seconds OpenCode opens. Type your question and press Enter.
 
 Tips for typing on a phone:
-- The row above the keyboard has `ESC`, `TAB`, `CTRL`, arrows, `/` and `|`. Use `/` to open the command menu.
+- The row above the keyboard has `ESC`, `TAB`, `CTRL`, `MENU`, arrows, `/` and `|`. Tap `MENU` (or **≡ MENU** at the top) to see everything you can do.
+- Type `/` in OpenCode to open its command menu.
 - In Termux the **volume-down** key works as CTRL (volume-down + b = Ctrl-b).
 
 ## 2. Good first prompts
@@ -25,7 +26,7 @@ Say *"save this as a report"*. It writes a Markdown file to your phone's shared 
 **Internal storage > Research > `<topic>-<date>.md`**. Open it in any file manager, or share it.
 
 ## 5. Leave it running
-Press `CTRL` then `b`, then `d` to detach. OpenCode keeps working in the background. Type `oc` later to
+Tap **LEAVE** in the bar at the top (or **≡ MENU > LEAVE**). OpenCode keeps working in the background. Type `oc` later to
 come back right where you were. (Android may still close Termux if battery settings are strict: see the README.)
 
 ## 6. Plan before big jobs

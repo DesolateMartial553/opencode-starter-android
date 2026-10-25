@@ -12,7 +12,8 @@ the screen. Built for a 64-bit ARM phone with 8 GB of RAM.
 - **Web search tools:** Exa and Context7 (no key needed). Tavily search and Firecrawl scraping if you add a
   free key. Add keys any time with `oc key`: see **[KEYS.md](KEYS.md)** (Gemini, OpenRouter, Tavily, Firecrawl).
 - **`oc` command:** one word starts (or reattaches to) OpenCode inside tmux.
-- **Phone-friendly Termux:** an extra-keys row (Esc, Tab, Ctrl, arrows, `/`, `|`) and touch scrolling.
+- **Tap-friendly tmux:** a bar at the top with big buttons (**≡ MENU**, **+ NEW**, **LEAVE**), a tap menu for every action, a built-in help page, and touch scrolling. No key combos to memorise.
+- **Phone-friendly Termux:** an extra-keys row (Esc, Tab, Ctrl, **MENU**, arrows, `/`, `|`).
 - Reports save to your phone's **shared storage** (`Research` folder), so you can open them in any app.
 
 ## Step 1: install Termux (the terminal app)
@@ -49,8 +50,21 @@ Read [GETTING-STARTED.md](GETTING-STARTED.md) for more.
 3. Android 12+ may still kill background processes. If sessions vanish: Settings > Developer options >
    **Disable child process restrictions** (turn on).
 
-## tmux cheat sheet
-tmux is what keeps OpenCode alive. The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the key.
+## Using tmux by tapping
+tmux is what keeps OpenCode alive. You don't need to learn keys: use the bar at the top of the screen.
+
+| Tap | What it does |
+|---|---|
+| **≡ MENU** (top left, or the `MENU` key above the keyboard) | list of every action: new window, split, full-screen, scroll, rename, close, leave, help |
+| **1:OpenCode**, **2:...** | switch to that window |
+| **+ NEW** | open a new window |
+| **LEAVE** | step away; OpenCode keeps running (type `oc` to return) |
+| swipe up/down | scroll back through the answer |
+
+Stuck? **MENU > Help** shows a one-page guide. **MENU > STOP everything** closes it all (it asks first).
+
+## tmux keys (optional)
+The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the key. `Ctrl-b Space` = menu, `Ctrl-b ?` = help.
 
 | Do this | Keys / command |
 |---|---|

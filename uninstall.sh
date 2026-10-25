@@ -17,6 +17,7 @@ ask() { local a; [ "$DRY" = 1 ] && return 1; ( : </dev/tty ) 2>/dev/null || retu
 tmux kill-server 2>/dev/null || true
 run rm -f "$PFX/bin/oc"
 [ -f "$HOME/.tmux.conf" ] && restore "$HOME/.tmux.conf"
+run rm -f "$HOME/.tmux-menu.conf" "$HOME/.tmux-help.txt"
 [ -f "$HOME/.termux/termux.properties" ] && restore "$HOME/.termux/termux.properties"
 command -v termux-reload-settings >/dev/null 2>&1 && run termux-reload-settings
 [ -d "$ROOTFS/root/.config/opencode" ] && restore "$ROOTFS/root/.config/opencode"
