@@ -5,7 +5,9 @@
 set -uo pipefail
 DRY=0; [ "${1:-}" = "--dry-run" ] && DRY=1
 PFX=${PREFIX:-/data/data/com.termux/files/usr}
-ROOTFS="$PFX/var/lib/proot-distro/installed-rootfs/debian"
+PD="$PFX/var/lib/proot-distro"
+# proot-distro 5+ keeps Debian in containers/NAME/rootfs; older versions used installed-rootfs/NAME
+if [ -d "$PD/containers/debian/rootfs" ]; then ROOTFS="$PD/containers/debian/rootfs"; else ROOTFS="$PD/installed-rootfs/debian"; fi
 run() { if [ "$DRY" = 1 ]; then echo "  [dry-run] $*"; else "$@"; fi; }
 latest() { ls -d "$1".backup-* 2>/dev/null | sort | tail -n 1; }   # newest backup of a path
 restore() { # restore path

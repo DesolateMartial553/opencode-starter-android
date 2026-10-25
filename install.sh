@@ -88,7 +88,10 @@ main() {
     *) if [ "$DRY" = 1 ]; then warn "CPU is $(uname -m) (fine for a dry run)"; else die "needs a 64-bit ARM (arm64) phone; this one reports $(uname -m)."; fi ;;
   esac
   local PFX=${PREFIX:-/data/data/com.termux/files/usr}
-  local ROOTFS="$PFX/var/lib/proot-distro/installed-rootfs/$DISTRO"
+  # proot-distro 5+ keeps Debian in containers/NAME/rootfs; older versions used installed-rootfs/NAME
+  local PD="$PFX/var/lib/proot-distro" ROOTFS
+  find_rootfs() { if [ -d "$PD/containers/$DISTRO/rootfs" ]; then echo "$PD/containers/$DISTRO/rootfs"; else echo "$PD/installed-rootfs/$DISTRO"; fi; }
+  ROOTFS=$(find_rootfs)
 
   # --- 1. get the kit files, then pick the fastest Termux mirror ---------------------------
   say "[1/5] Fetching the kit and finding the fastest download mirror"
@@ -154,6 +157,12 @@ main() {
       note "download interrupted; trying again in 5 seconds ($tries of 4 retries used)"
       sleep 5
     done
+  fi
+  ROOTFS=$(find_rootfs)   # the path may only exist now, after the install
+  if [ "$DRY" != 1 ] && [ ! -d "$ROOTFS/root" ]; then die "Debian was installed but its folder was not found at $ROOTFS. Run: proot-distro list, and paste the output when asking for help."; fi
+  # an earlier version of this installer wrote its files to the old path; remove that stray copy (it has no system in it)
+  if [ "$ROOTFS" != "$PD/installed-rootfs/$DISTRO" ] && [ -d "$PD/installed-rootfs/$DISTRO" ] && [ ! -d "$PD/installed-rootfs/$DISTRO/usr" ]; then
+    run rm -rf "$PD/installed-rootfs/$DISTRO"
   fi
 
   # config + launcher script go in before provisioning so `npm install` can read package.json

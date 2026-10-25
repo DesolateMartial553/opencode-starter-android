@@ -4,7 +4,9 @@
 set -u
 DISTRO=debian
 SESSION=opencode
-ROOTFS="${PREFIX:-/data/data/com.termux/files/usr}/var/lib/proot-distro/installed-rootfs/$DISTRO"
+PD="${PREFIX:-/data/data/com.termux/files/usr}/var/lib/proot-distro"
+# proot-distro 5+ keeps Debian in containers/NAME/rootfs; older versions used installed-rootfs/NAME
+if [ -d "$PD/containers/$DISTRO/rootfs" ]; then ROOTFS="$PD/containers/$DISTRO/rootfs"; else ROOTFS="$PD/installed-rootfs/$DISTRO"; fi
 KEYFILE="$ROOTFS/root/.config/opencode-keys.env"   # exported into OpenCode by /root/.oc-start.sh
 CONF="$ROOTFS/root/.config/opencode/opencode.json"
 
