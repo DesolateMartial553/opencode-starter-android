@@ -63,6 +63,7 @@ tmux is what keeps OpenCode alive. The prefix is **Ctrl-b**: tap `CTRL` on the e
 | List / end sessions | `oc ls` / `oc kill` |
 | Plain Debian shell | `oc shell` |
 | Update OpenCode | `oc update` |
+| Re-test and use the fastest download mirror | `oc mirror` |
 | Add / list / remove API keys | `oc key` / `oc key list` / `oc key remove NAME` |
 
 (`oc`, `oc ls` and the others are typed in Termux. `Ctrl-b ...` works while you are inside tmux.)
@@ -73,8 +74,11 @@ tmux is what keeps OpenCode alive. The prefix is **Ctrl-b**: tap `CTRL` on the e
 - First start inside Debian can take 10-20 seconds.
 
 ## Troubleshooting
-- **Downloads crawl (a few kB/s, ETA of hours)** - press `Ctrl-C`, run `termux-change-repo`, choose
-  *Single mirror* or *Mirror group* and pick **default** (or a group near you), then run the installer again.
+- **Downloads crawl (a few kB/s, ETA of hours)** - the installer already tests every Termux mirror and picks the
+  fastest for your phone. To re-test later (speeds change by time and network), run `oc mirror`. If the
+  installer itself is stuck, press `Ctrl-C`, run `termux-change-repo`, pick **default**, and run it again.
+- **`CANNOT LINK EXECUTABLE "curl"` / `cannot locate symbol`** - Termux was left half-upgraded. Run
+  `apt-get update && apt-get -y -o Dpkg::Options::=--force-confold dist-upgrade`, then run the installer again.
 - **`oc: command not found`** - close and reopen Termux, or re-run the installer.
 - **Installer stopped halfway** - run it again; it is safe to repeat and keeps backups.
 - **"Allow storage" was missed** - run `termux-setup-storage`, then re-run the installer.

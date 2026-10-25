@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/DesolateMartial553/opencode-starter-android/main/install.sh | bash
 #
 # What it does:
-#   1. installs tmux and proot-distro in Termux
+#   1. finds the fastest Termux download mirror for your phone, then installs tmux and proot-distro
 #   2. installs a small Debian (no root needed) and OpenCode inside it
 #   3. copies this kit's config, research skills and agents (backing up anything it replaces)
 #   4. sets up tmux, a phone extra-keys row and the `oc` launcher in Termux
@@ -90,27 +90,8 @@ main() {
   local PFX=${PREFIX:-/data/data/com.termux/files/usr}
   local ROOTFS="$PFX/var/lib/proot-distro/installed-rootfs/$DISTRO"
 
-  # --- 1. Termux packages ------------------------------------------------------------------
-  say "[1/5] Installing Termux packages (tmux, proot-distro)"
-  # Use apt-get, not `pkg`: on a fresh Termux `pkg update` auto-picks a random mirror (it once chose a
-  # Chinese university server at ~5 kB/s). apt-get keeps Termux's default fast mirror.
-  # --no-install-recommends: avoids ~600 MB of unneeded extras (clang, llvm, python, openssh...).
-  # curl is already in Termux and git is only needed inside Debian.
-  run apt-get update -y
-  run env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::=--force-confold tmux proot-distro curl
-  if [ ! -d "$HOME/storage/shared" ]; then
-    note "asking Android for storage access: tap ALLOW on the pop-up (lets reports be saved where your file manager can see them)"
-    run termux-setup-storage
-    if [ "$DRY" != 1 ]; then
-      for _ in $(seq 1 30); do [ -d "$HOME/storage/shared" ] && break; sleep 1; done
-      if [ -d "$HOME/storage/shared" ]; then ok "storage access granted"; else warn "no storage access yet; reports will go to ~/research inside Debian. Run termux-setup-storage later."; fi
-    fi
-  else
-    ok "storage access already granted"
-  fi
-
-  # --- 2. get the kit files ----------------------------------------------------------------
-  say "[2/5] Fetching the kit"
+  # --- 1. get the kit files, then pick the fastest Termux mirror ---------------------------
+  say "[1/5] Fetching the kit and finding the fastest download mirror"
   local kit="" work=""
   if [ -n "$SOURCE" ]; then
     kit=$(cd "$SOURCE" && pwd)
@@ -122,6 +103,42 @@ main() {
     curl -fsSL "https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz" | tar -xz -C "$work"
     kit="$work/$(ls "$work" | head -n 1)"
     ok "downloaded"
+  fi
+  # On a fresh Termux `pkg` auto-picks a RANDOM mirror (it once chose a Chinese university server at ~5 kB/s).
+  # So we time the real mirrors from this phone and switch to the fastest before downloading anything big.
+  if [ -n "$kit" ]; then
+    mirror_args=()
+    if [ "$DRY" = 1 ]; then mirror_args=(--dry-run); fi
+    bash "$kit/termux/fastest-mirror.sh" "${mirror_args[@]}" || warn "mirror test failed; continuing with Termux's current mirror (run  oc mirror  later to retry)"
+  else
+    note "[dry-run] would test every Termux mirror and switch to the fastest"
+  fi
+
+  # --- 2. Termux packages ------------------------------------------------------------------
+  say "[2/5] Installing Termux packages (tmux, proot-distro)"
+  # --no-install-recommends: avoids ~600 MB of unneeded extras (clang, llvm, python, openssh...).
+  # curl is already in Termux and git is only needed inside Debian. apt-get (not `pkg`) so nothing re-picks a mirror.
+  run apt-get update -y
+  # Full upgrade first: Termux breaks on PARTIAL upgrades (installing one package that upgrades curl but not
+  # openssl left curl unable to start: "cannot locate symbol SSL_set_quic_tls_early_data_enabled").
+  run env DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y -o Dpkg::Options::=--force-confold
+  run env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::=--force-confold tmux proot-distro curl
+  # safety net: if curl still cannot start, repair with another full upgrade before continuing
+  if [ "$DRY" != 1 ] && ! curl --version >/dev/null 2>&1; then
+    warn "curl is broken by a half-finished upgrade; repairing"
+    apt-get -f install -y -o Dpkg::Options::=--force-confold || true
+    DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y -o Dpkg::Options::=--force-confold
+    curl --version >/dev/null 2>&1 || die "curl is still broken. Run: apt-get update && apt-get dist-upgrade   then run this installer again."
+  fi
+  if [ ! -d "$HOME/storage/shared" ]; then
+    note "asking Android for storage access: tap ALLOW on the pop-up (lets reports be saved where your file manager can see them)"
+    run termux-setup-storage
+    if [ "$DRY" != 1 ]; then
+      for _ in $(seq 1 30); do [ -d "$HOME/storage/shared" ] && break; sleep 1; done
+      if [ -d "$HOME/storage/shared" ]; then ok "storage access granted"; else warn "no storage access yet; reports will go to ~/research inside Debian. Run termux-setup-storage later."; fi
+    fi
+  else
+    ok "storage access already granted"
   fi
 
   # --- 3. Debian + OpenCode ----------------------------------------------------------------
@@ -168,6 +185,7 @@ if command -v npm >/dev/null 2>&1; then (cd "$HOME/.config/opencode" && npm inst
     install_file "$kit/termux/tmux.conf" "$HOME/.tmux.conf" 644
     install_file "$kit/termux/termux.properties" "$HOME/.termux/termux.properties" 644
     install_file "$kit/termux/oc" "$PFX/bin/oc" 755
+    install_file "$kit/termux/fastest-mirror.sh" "$PFX/bin/oc-mirror" 755
     if command -v termux-reload-settings >/dev/null 2>&1; then run termux-reload-settings; fi
   else
     note "[dry-run] would install ~/.tmux.conf, ~/.termux/termux.properties and $PFX/bin/oc"

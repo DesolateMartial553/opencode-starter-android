@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # oc: start / resume OpenCode inside tmux. Runs in Termux; OpenCode itself runs in the Debian proot.
-# Usage: oc [new NAME | ls | kill [NAME] | shell | update | key ... | help]
+# Usage: oc [new NAME | ls | kill [NAME] | shell | update | key ... | mirror | help]
 set -u
 DISTRO=debian
 SESSION=opencode
@@ -103,6 +103,7 @@ case "$cmd" in
   ls)     tmux ls 2>/dev/null || echo "no sessions running" ;;
   kill)   tmux kill-session -t "${2:-$SESSION}" ;;
   key)    shift; cmd_key "$@" ;;
+  mirror) exec bash "${PREFIX:-/data/data/com.termux/files/usr}/bin/oc-mirror" --update "${@:2}" ;;
   shell)  exec proot-distro login "$DISTRO" --shared-tmp $(bind_args) ;;
   update) exec proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode upgrade || npm install -g opencode-ai@latest' ;;
   help|-h|--help)
@@ -115,6 +116,7 @@ oc key           add free API keys (Gemini, OpenRouter, Tavily, Firecrawl); Ente
 oc key NAME      add or replace one key (gemini | openrouter | tavily | firecrawl)
 oc key list      show which keys are set
 oc key remove N  delete a key
+oc mirror        re-test and switch to the fastest Termux download mirror
 oc shell         open a plain Debian shell
 oc update        update OpenCode
 Inside tmux: detach with Ctrl-b then d (OpenCode keeps running). Run oc again to come back.
