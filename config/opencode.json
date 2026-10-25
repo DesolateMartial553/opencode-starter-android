@@ -1,0 +1,61 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/deepseek-v4.1-flash-free",
+  "small_model": "opencode/glm-5.3-flash-free",
+  "plugins": [
+    {
+      "package": "opencode-runtime-fallback",
+      "options": {
+        "fallback_models": [
+          "opencode/glm-5.3-flash-free",
+          "opencode/mimo-v2.6-flash-free",
+          "google/gemini-flash-lite-latest",
+          "openrouter/openrouter/free"
+        ],
+        "timeout_seconds": 30
+      }
+    }
+  ],
+  "mcp": {
+    "servers": {
+      "exa": {
+        "type": "remote",
+        "url": "https://mcp.exa.ai/mcp"
+      },
+      "context7": {
+        "type": "remote",
+        "url": "https://mcp.context7.com/mcp"
+      },
+      "firecrawl": {
+        "type": "local",
+        "command": ["npx", "-y", "firecrawl-mcp"],
+        "environment": {
+          "FIRECRAWL_API_KEY": "{env:FIRECRAWL_API_KEY}"
+        },
+        "enabled": false
+      }
+    }
+  },
+  "permission": {
+    "external_directory": {
+      "*": "ask",
+      "~/**": "allow"
+    },
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow",
+      "~/.config/opencode-keys.env": "deny"
+    },
+    "shell": {
+      "*": "allow",
+      "rm -rf *": "ask",
+      "git push*": "ask",
+      "git reset --hard*": "ask",
+      "gh repo *": "ask",
+      "gh pr merge*": "ask",
+      "gh release *": "ask"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# oc: start / resume OpenCode inside tmux. Runs in Termux; OpenCode itself runs in the Debian proot.
+# Usage: oc [new NAME | ls | kill [NAME] | shell | update | help]
+set -u
+DISTRO=debian
+SESSION=opencode
+
+bind_args() {
+  # make the phone's shared storage visible inside Debian as ~/shared (reports land in ~/shared/Research)
+  if [ -d "$HOME/storage/shared" ]; then printf '%s' "--bind $HOME/storage/shared:/root/shared"; fi
+}
+
+# the command tmux runs: log in to Debian and start OpenCode via /root/.oc-start.sh
+start_cmd() {
+  printf '%s' "proot-distro login $DISTRO --shared-tmp $(bind_args) -- bash -l /root/.oc-start.sh"
+}
+
+# keep the CPU awake while we work (shows a Termux notification; harmless if unavailable)
+command -v termux-wake-lock >/dev/null 2>&1 && termux-wake-lock 2>/dev/null
+
+cmd=${1:-start}
+case "$cmd" in
+  start)  exec tmux new-session -A -s "$SESSION" "$(start_cmd)" ;;   # -A: attach if it exists, else create
+  new)    exec tmux new-session -A -s "${2:?usage: oc new NAME}" "$(start_cmd)" ;;
+  ls)     tmux ls 2>/dev/null || echo "no sessions running" ;;
+  kill)   tmux kill-session -t "${2:-$SESSION}" ;;
+  shell)  exec proot-distro login "$DISTRO" --shared-tmp $(bind_args) ;;
+  update) exec proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode upgrade || npm install -g opencode-ai@latest' ;;
+  help|-h|--help)
+    cat <<'EOF'
+oc            start OpenCode (or reattach if it is already running)
+oc new NAME   start a second, separate session called NAME
+oc ls         list running sessions
+oc kill [N]   end a session (default: opencode)
+oc shell      open a plain Debian shell
+oc update     update OpenCode
+Inside tmux: detach with Ctrl-b then d (OpenCode keeps running). Run oc again to come back.
+EOF
+    ;;
+  *) echo "unknown command: $cmd (try: oc help)"; exit 1 ;;
+esac
