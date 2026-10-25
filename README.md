@@ -44,6 +44,17 @@ oc
 Type your question, e.g. *"Research the best budget phones in the UK right now, with sources"*.
 Read [GETTING-STARTED.md](GETTING-STARTED.md) for more.
 
+## Optional: an OpenCode icon on your home screen
+One tap on the icon opens OpenCode in tmux, with no typing.
+1. Install **Termux:Widget** from the **same source** as Termux (mixing sources breaks it):
+   **[GitHub release](https://github.com/termux/termux-widget/releases/latest)** (the `.apk` file) or
+   **[F-Droid](https://f-droid.org/en/packages/com.termux.widget/)**.
+2. Android: **Settings > Apps > Termux > Display over other apps (or Appear on top) > Allow**. Without this the icon does nothing.
+3. Long-press an empty spot on your home screen > **Widgets** > **Termux:Widget** > drag the **shortcut** widget out.
+   Tap it and choose **OpenCode** (the installer already created it).
+
+Prefer no extra app? Run `oc autostart on` and Termux itself opens straight into OpenCode. Undo with `oc autostart off`.
+
 ## Stop Android killing it (do this once)
 1. **Settings > Apps > Termux > Battery > Unrestricted** (no battery optimisation).
 2. Keep the **Termux notification** ("wake lock held") in the notification shade: `oc` turns it on.
@@ -78,6 +89,7 @@ The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the k
 | Plain Debian shell | `oc shell` |
 | Update OpenCode | `oc update` |
 | Re-test and use the fastest download mirror | `oc mirror` |
+| Open OpenCode every time Termux opens (on / off) | `oc autostart on` / `oc autostart off` |
 | Add / list / remove API keys | `oc key` / `oc key list` / `oc key remove NAME` |
 
 (`oc`, `oc ls` and the others are typed in Termux. `Ctrl-b ...` works while you are inside tmux.)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # oc: start / resume OpenCode inside tmux. Runs in Termux; OpenCode itself runs in the Debian proot.
-# Usage: oc [new NAME | ls | kill [NAME] | shell | update | key ... | mirror | help]
+# Usage: oc [new NAME | ls | kill [NAME] | shell | update | key ... | mirror | autostart on|off | help]
 set -u
 DISTRO=debian
 SESSION=opencode
@@ -98,6 +98,21 @@ cmd_key() {
   esac
 }
 
+# oc autostart on   open OpenCode automatically whenever you open Termux
+# oc autostart off  go back to a plain Termux prompt
+BASHRC="$HOME/.bashrc"
+MARK_A="# >>> opencode-kit autostart >>>"; MARK_B="# <<< opencode-kit autostart <<<"
+autostart_off() { [ -f "$BASHRC" ] && sed -i "/^$MARK_A\$/,/^$MARK_B\$/d" "$BASHRC"; return 0; }
+cmd_autostart() {
+  case "${1:-}" in
+    on)  autostart_off
+         printf '%s\n%s\n%s\n' "$MARK_A" '[ -z "${TMUX:-}" ] && [ -z "${OC_NOAUTO:-}" ] && [ -t 0 ] && command -v oc >/dev/null 2>&1 && oc' "$MARK_B" >> "$BASHRC"
+         echo "on: Termux will now open OpenCode by itself. Turn off with: oc autostart off" ;;
+    off) autostart_off; echo "off: Termux opens a normal prompt again" ;;
+    *)   if grep -qF "$MARK_A" "$BASHRC" 2>/dev/null; then echo "autostart is on (turn off: oc autostart off)"; else echo "autostart is off (turn on: oc autostart on)"; fi ;;
+  esac
+}
+
 cmd=${1:-start}
 case "$cmd" in
   start)  wake_lock; exec tmux new-session -A -s "$SESSION" -n OpenCode "$(start_cmd)" ;;   # -A: attach if it exists, else create
@@ -105,6 +120,7 @@ case "$cmd" in
   ls)     tmux ls 2>/dev/null || echo "no sessions running" ;;
   kill)   tmux kill-session -t "${2:-$SESSION}" ;;
   key)    shift; cmd_key "$@" ;;
+  autostart) shift; cmd_autostart "$@" ;;
   mirror) exec bash "${PREFIX:-/data/data/com.termux/files/usr}/bin/oc-mirror" --update "${@:2}" ;;
   shell)  exec proot-distro login "$DISTRO" --shared-tmp $(bind_args) ;;
   update) exec proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode upgrade || npm install -g opencode-ai@latest' ;;
@@ -119,6 +135,7 @@ oc key NAME      add or replace one key (gemini | openrouter | tavily | firecraw
 oc key list      show which keys are set
 oc key remove N  delete a key
 oc mirror        re-test and switch to the fastest Termux download mirror
+oc autostart on  open OpenCode whenever Termux opens (off: back to a normal prompt)
 oc shell         open a plain Debian shell
 oc update        update OpenCode
 Inside tmux: detach with Ctrl-b then d (OpenCode keeps running). Run oc again to come back.

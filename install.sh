@@ -204,6 +204,8 @@ if command -v npm >/dev/null 2>&1; then (cd "$HOME/.config/opencode" && npm inst
     install_file "$kit/termux/termux.properties" "$HOME/.termux/termux.properties" 644
     install_file "$kit/termux/oc" "$PFX/bin/oc" 755
     install_file "$kit/termux/fastest-mirror.sh" "$PFX/bin/oc-mirror" 755
+    # home-screen shortcut for the optional Termux:Widget app (does nothing until that app is installed)
+    install_file "$kit/termux/shortcut-opencode.sh" "$HOME/.shortcuts/OpenCode" 755
     if command -v termux-reload-settings >/dev/null 2>&1; then run termux-reload-settings; fi
   else
     note "[dry-run] would install ~/.tmux.conf (+ tap menu and help), ~/.termux/termux.properties and $PFX/bin/oc"
