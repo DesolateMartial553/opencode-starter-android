@@ -34,7 +34,7 @@ Build (makes changes).
 
 ## 7. Models and keys
 - Free models work with no key. If one is slow or fails, OpenCode automatically tries the next.
-- For stronger models add a free key: run the installer again and paste it when asked
-  (Gemini: <https://aistudio.google.com/apikey>, OpenRouter: <https://openrouter.ai/keys>).
-- Firecrawl (<https://www.firecrawl.dev/app/api-keys>) improves page scraping for deep research.
+- For stronger models or better research search, add free keys from Termux with `oc key`
+  (Gemini, OpenRouter, Tavily, Firecrawl). Step-by-step phone instructions are in [KEYS.md](KEYS.md).
+- `oc key list` shows what is set. Restart with `oc kill`, then `oc`, after adding one.
 - Never paste keys into the chat.

@@ -26,13 +26,18 @@
         "type": "remote",
         "url": "https://mcp.context7.com/mcp"
       },
+      "tavily": {
+        "type": "remote",
+        "url": "https://mcp.tavily.com/mcp/?tavilyApiKey={env:TAVILY_API_KEY}",
+        "enabled": false
+      },
       "firecrawl": {
         "type": "local",
         "command": ["npx", "-y", "firecrawl-mcp"],
+        "enabled": false,
         "environment": {
           "FIRECRAWL_API_KEY": "{env:FIRECRAWL_API_KEY}"
-        },
-        "enabled": false
+        }
       }
     }
   },

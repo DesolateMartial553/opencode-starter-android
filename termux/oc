@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # oc: start / resume OpenCode inside tmux. Runs in Termux; OpenCode itself runs in the Debian proot.
-# Usage: oc [new NAME | ls | kill [NAME] | shell | update | help]
+# Usage: oc [new NAME | ls | kill [NAME] | shell | update | key ... | help]
 set -u
 DISTRO=debian
 SESSION=opencode
+ROOTFS="${PREFIX:-/data/data/com.termux/files/usr}/var/lib/proot-distro/installed-rootfs/$DISTRO"
+KEYFILE="$ROOTFS/root/.config/opencode-keys.env"   # exported into OpenCode by /root/.oc-start.sh
+CONF="$ROOTFS/root/.config/opencode/opencode.json"
 
 bind_args() {
   # make the phone's shared storage visible inside Debian as ~/shared (reports land in ~/shared/Research)
@@ -15,25 +18,105 @@ start_cmd() {
   printf '%s' "proot-distro login $DISTRO --shared-tmp $(bind_args) -- bash -l /root/.oc-start.sh"
 }
 
-# keep the CPU awake while we work (shows a Termux notification; harmless if unavailable)
-command -v termux-wake-lock >/dev/null 2>&1 && termux-wake-lock 2>/dev/null
+wake_lock() {
+  # keep the CPU awake while we work (shows a Termux notification; harmless if unavailable)
+  if command -v termux-wake-lock >/dev/null 2>&1; then termux-wake-lock 2>/dev/null; fi
+}
+
+# ---- API keys -------------------------------------------------------------------------------
+KEY_NAMES="gemini openrouter tavily firecrawl"
+# sets VAR LABEL LINK MCP (MCP = the OpenCode MCP server this key switches on, or empty)
+provider() {
+  case "$1" in
+    gemini|google) VAR=GOOGLE_GENERATIVE_AI_API_KEY; LABEL="Google Gemini"; LINK="https://aistudio.google.com/apikey"; MCP="" ;;
+    openrouter)    VAR=OPENROUTER_API_KEY; LABEL="OpenRouter"; LINK="https://openrouter.ai/keys"; MCP="" ;;
+    tavily)        VAR=TAVILY_API_KEY; LABEL="Tavily (research search)"; LINK="https://app.tavily.com/home"; MCP="tavily" ;;
+    firecrawl)     VAR=FIRECRAWL_API_KEY; LABEL="Firecrawl (page scraping)"; LINK="https://www.firecrawl.dev/app/api-keys"; MCP="firecrawl" ;;
+    *) return 1 ;;
+  esac
+}
+key_is_set() { [ -f "$KEYFILE" ] && grep -q "^export $VAR=" "$KEYFILE"; }
+
+# flip "enabled" for one MCP server block in the OpenCode config ($1 name, $2 true|false)
+mcp_enabled() {
+  [ -f "$CONF" ] || return 0
+  local from=true to=false
+  [ "$2" = true ] && { from=false; to=true; }
+  sed -i "/\"$1\": {/,/\"enabled\"/ s/\"enabled\": $from/\"enabled\": $to/" "$CONF"
+}
+
+key_set() { # key_set name  (asks for the key; nothing shows as you type)
+  provider "$1" || { echo "unknown provider '$1' (choose: $KEY_NAMES)"; return 1; }
+  [ -d "$ROOTFS/root" ] || { echo "Debian is not installed yet: run the installer first."; return 1; }
+  local val=""
+  printf '\n%s key. Get one free at:\n  %s\nPaste it (nothing shows as you type) or press Enter to skip: ' "$LABEL" "$LINK" >/dev/tty
+  read -rs val </dev/tty || val=""
+  printf '\n' >/dev/tty
+  if [ -z "$val" ]; then echo "skipped $LABEL"; return 0; fi
+  case "$val" in *"'"*|*" "*|*'"'*) echo "that does not look like a key (it has a space or quote); nothing saved"; return 1 ;; esac
+  if [ "${#val}" -lt 8 ]; then echo "that is too short to be a key; nothing saved"; return 1; fi
+  ( umask 077; mkdir -p "$(dirname "$KEYFILE")"; touch "$KEYFILE"
+    grep -v "^export $VAR=" "$KEYFILE" > "$KEYFILE.tmp" || true
+    printf "export %s='%s'\n" "$VAR" "$val" >> "$KEYFILE.tmp"; mv "$KEYFILE.tmp" "$KEYFILE"; chmod 600 "$KEYFILE" )
+  if [ -n "$MCP" ]; then mcp_enabled "$MCP" true; fi
+  if [ "$MCP" = firecrawl ]; then
+    # Firecrawl's server runs through npx, so Debian needs Node.js (installed only when this key is used)
+    proot-distro login "$DISTRO" -- bash -c 'command -v npx >/dev/null 2>&1 || { apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs npm; }' \
+      || echo "could not install Node.js for Firecrawl: run 'oc shell' then 'apt-get install nodejs npm'"
+  fi
+  echo "saved $LABEL key. It applies the next time OpenCode starts (oc kill, then oc)."
+}
+
+key_remove() {
+  provider "${1:-}" || { echo "usage: oc key remove <${KEY_NAMES// /|}>"; return 1; }
+  if [ -f "$KEYFILE" ]; then grep -v "^export $VAR=" "$KEYFILE" > "$KEYFILE.tmp" || true; mv "$KEYFILE.tmp" "$KEYFILE"; chmod 600 "$KEYFILE"; fi
+  if [ -n "$MCP" ]; then mcp_enabled "$MCP" false; fi
+  echo "removed $LABEL key"
+}
+
+key_list() {
+  local n v
+  for n in $KEY_NAMES; do
+    provider "$n"
+    if key_is_set; then v=$(grep "^export $VAR=" "$KEYFILE" | sed "s/.*='\(.*\)'.*/\1/"); printf '  %-10s set      (…%s)\n' "$n" "${v: -4}"
+    else printf '  %-10s not set  %s\n' "$n" "$LINK"; fi
+  done
+}
+
+# oc key            walk through every key you have not set yet (press Enter to skip each)
+# oc key NAME       set or replace one key
+# oc key list       show what is set (last 4 characters only)
+# oc key remove N   delete one key
+cmd_key() {
+  case "${1:-}" in
+    "")     local n; for n in $KEY_NAMES; do provider "$n"; if key_is_set; then echo "$LABEL: already set"; else key_set "$n"; fi; done ;;
+    list)   key_list ;;
+    remove) key_remove "${2:-}" ;;
+    *)      key_set "$1" ;;
+  esac
+}
 
 cmd=${1:-start}
 case "$cmd" in
-  start)  exec tmux new-session -A -s "$SESSION" "$(start_cmd)" ;;   # -A: attach if it exists, else create
-  new)    exec tmux new-session -A -s "${2:?usage: oc new NAME}" "$(start_cmd)" ;;
+  start)  wake_lock; exec tmux new-session -A -s "$SESSION" "$(start_cmd)" ;;   # -A: attach if it exists, else create
+  new)    wake_lock; exec tmux new-session -A -s "${2:?usage: oc new NAME}" "$(start_cmd)" ;;
   ls)     tmux ls 2>/dev/null || echo "no sessions running" ;;
   kill)   tmux kill-session -t "${2:-$SESSION}" ;;
+  key)    shift; cmd_key "$@" ;;
   shell)  exec proot-distro login "$DISTRO" --shared-tmp $(bind_args) ;;
   update) exec proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode upgrade || npm install -g opencode-ai@latest' ;;
   help|-h|--help)
     cat <<'EOF'
-oc            start OpenCode (or reattach if it is already running)
-oc new NAME   start a second, separate session called NAME
-oc ls         list running sessions
-oc kill [N]   end a session (default: opencode)
-oc shell      open a plain Debian shell
-oc update     update OpenCode
+oc               start OpenCode (or reattach if it is already running)
+oc new NAME      start a second, separate session called NAME
+oc ls            list running sessions
+oc kill [N]      end a session (default: opencode)
+oc key           add free API keys (Gemini, OpenRouter, Tavily, Firecrawl); Enter skips each
+oc key NAME      add or replace one key (gemini | openrouter | tavily | firecrawl)
+oc key list      show which keys are set
+oc key remove N  delete a key
+oc shell         open a plain Debian shell
+oc update        update OpenCode
 Inside tmux: detach with Ctrl-b then d (OpenCode keeps running). Run oc again to come back.
 EOF
     ;;

@@ -9,7 +9,8 @@ the screen. Built for a 64-bit ARM phone with 8 GB of RAM.
 ## What you get
 - **Research skills:** deep research, market research, competitor/product analysis, SEO, search-first,
   lead intelligence, article writing. Plus the `/plan` and `/aside` commands.
-- **Web search tools:** Exa and Context7 (no key needed). Firecrawl scraping if you add a free key.
+- **Web search tools:** Exa and Context7 (no key needed). Tavily search and Firecrawl scraping if you add a
+  free key. Add keys any time with `oc key`: see **[KEYS.md](KEYS.md)** (Gemini, OpenRouter, Tavily, Firecrawl).
 - **`oc` command:** one word starts (or reattaches to) OpenCode inside tmux.
 - **Phone-friendly Termux:** an extra-keys row (Esc, Tab, Ctrl, arrows, `/`, `|`) and touch scrolling.
 - Reports save to your phone's **shared storage** (`Research` folder), so you can open them in any app.
@@ -31,7 +32,8 @@ curl -fsSL https://raw.githubusercontent.com/DesolateMartial553/opencode-starter
 
 - Takes about 10-20 minutes and downloads ~300 MB. Keep the screen on and stay in Termux.
 - When Android asks for **storage access**, tap **Allow**.
-- It offers to save free API keys (optional; press Enter to skip each).
+- It offers to save free API keys (optional; press Enter to skip each). You can add them later with `oc key`;
+  the step-by-step guide is **[KEYS.md](KEYS.md)**.
 - Want a preview first? Download the script with `curl -fsSLO <the install.sh URL above>`, then run `bash install.sh --dry-run`.
 
 ## Step 3: start it
@@ -61,6 +63,7 @@ tmux is what keeps OpenCode alive. The prefix is **Ctrl-b**: tap `CTRL` on the e
 | List / end sessions | `oc ls` / `oc kill` |
 | Plain Debian shell | `oc shell` |
 | Update OpenCode | `oc update` |
+| Add / list / remove API keys | `oc key` / `oc key list` / `oc key remove NAME` |
 
 (`oc`, `oc ls` and the others are typed in Termux. `Ctrl-b ...` works while you are inside tmux.)
 

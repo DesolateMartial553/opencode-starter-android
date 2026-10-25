@@ -8,7 +8,7 @@ research, SEO, summarising sources, and writing up findings.
 
 ## How to research
 - **Search before answering from memory** for anything that can change (prices, products, news, laws,
-  versions). Use the available search tools (Exa, Context7, Firecrawl if enabled) and the `deep-research`,
+  versions). Use the available search tools (Exa, Context7, plus Tavily and Firecrawl if enabled) and the `deep-research`,
   `research-ops`, `market-research` and `search-first` skills.
 - **Cite sources** as links next to the claims they support. Separate **facts** (with a source) from
   **inferences** (say so) and **unknowns** (say you could not find it). Never invent numbers, quotes or URLs.

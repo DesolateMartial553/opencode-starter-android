@@ -175,33 +175,13 @@ if command -v npm >/dev/null 2>&1; then (cd "$HOME/.config/opencode" && npm inst
 
   # --- 5. optional API keys ----------------------------------------------------------------
   say "[5/5] Optional API keys"
-  note "OpenCode works with no keys using free models. Keys only add stronger models / better web scraping."
-  note "They are saved only on this phone (inside Debian, readable only by you)."
-  local keyfile="$ROOTFS/root/.config/opencode-keys.env"
-  save_key() { # save_key "Label" VAR "where to get it"
-    local label=$1 var=$2 link=$3 val=""
-    if [ -f "$keyfile" ] && grep -q "^export $var=" "$keyfile"; then ok "$label key already saved"; return 0; fi
-    if [ "$YES" = 1 ] || [ "$DRY" = 1 ] || ! have_tty; then note "$label: get a free key at $link (optional; add it later by re-running the installer)"; return 0; fi
-    printf '\n  %s key: get one free at %s\n  Paste it (nothing shows as you type) or press Enter to skip: ' "$label" "$link" >/dev/tty
-    read -rs val </dev/tty || val=""
-    printf '\n' >/dev/tty
-    if [ -z "$val" ]; then note "skipped $label"; return 0; fi
-    case "$val" in *"'"*|*" "*) warn "that key looks wrong (contains a quote or space); skipped"; return 0 ;; esac
-    ( umask 077; touch "$keyfile"; grep -v "^export $var=" "$keyfile" > "$keyfile.tmp" || true
-      printf "export %s='%s'\n" "$var" "$val" >> "$keyfile.tmp"; mv "$keyfile.tmp" "$keyfile" )
-    chmod 600 "$keyfile"
-    ok "$label key saved"
-  }
-  save_key "Google Gemini" GOOGLE_GENERATIVE_AI_API_KEY "https://aistudio.google.com/apikey"
-  save_key "OpenRouter" OPENROUTER_API_KEY "https://openrouter.ai/keys"
-  save_key "Firecrawl (web scraping for deep research)" FIRECRAWL_API_KEY "https://www.firecrawl.dev/app/api-keys"
-  # the Firecrawl MCP server ships switched off; turn it on only when a key exists
-  if [ -f "$keyfile" ] && grep -q '^export FIRECRAWL_API_KEY=' "$keyfile" && [ -f "$dest/opencode.json" ]; then
-    sed -i 's/"enabled": false/"enabled": true/' "$dest/opencode.json"
-    # Firecrawl's MCP server runs through npx, so Node.js is needed (only installed when Firecrawl is used)
-    run proot-distro login "$DISTRO" -- bash -c 'command -v npx >/dev/null 2>&1 || { apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs npm; }' \
-      || warn "could not install Node.js for Firecrawl; run: oc shell, then apt-get install nodejs npm"
-    ok "Firecrawl search turned on"
+  note "OpenCode works with no keys using free models. Keys only add stronger models and better research search."
+  note "They are saved only on this phone (inside Debian, readable only by you). Press Enter to skip any of them."
+  note "You can add or change them any time later with:  oc key"
+  if [ "$YES" = 1 ] || [ "$DRY" = 1 ] || ! have_tty; then
+    note "skipping key prompts. Later, run:  oc key   (step-by-step guide: KEYS.md in the repo)"
+  elif [ -n "$kit" ]; then
+    "$PFX/bin/oc" key || warn "key setup was interrupted; run  oc key  later"
   fi
 
   if [ -n "$work" ]; then rm -rf "$work"; fi
