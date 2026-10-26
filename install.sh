@@ -227,10 +227,10 @@ OCPATH
     install_file "$kit/termux/tmux-tap" "$PFX/bin/tmux-tap" 755
     install_file "$kit/termux/fastest-mirror.sh" "$PFX/bin/oc-mirror" 755
     # home-screen shortcut for the optional Termux:Widget app (does nothing until that app is installed)
-    install_file "$kit/termux/shortcut-opencode.sh" "$HOME/.shortcuts/OpenCode" 755
+    run "$PFX/bin/oc" launcher --quiet || warn "could not create the home-screen icon script; run  oc launcher  later"
     if command -v termux-reload-settings >/dev/null 2>&1; then run termux-reload-settings; fi
   else
-    note "[dry-run] would install ~/.tmux.conf (+ tap menu and help), ~/.termux/termux.properties and $PFX/bin/oc, oc-pane, tmux-tap"
+    note "[dry-run] would install ~/.tmux.conf (+ tap menu and help), ~/.termux/termux.properties, $PFX/bin/oc, oc-pane and tmux-tap, and the home-screen icon script"
   fi
 
   # --- 5. optional API keys ----------------------------------------------------------------

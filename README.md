@@ -53,6 +53,10 @@ One tap on the icon opens OpenCode in tmux, with no typing.
 3. Long-press an empty spot on your home screen > **Widgets** > **Termux:Widget** > drag the **shortcut** widget out.
    Tap it and choose **OpenCode** (the installer already created it).
 
+If the icon closes the instant you tap it, the whole setup is written out again by `oc launcher` - it shows the
+three steps above and re-creates the script. When OpenCode genuinely fails to start, the icon's window now stays
+put for 30 seconds with the reason, instead of vanishing.
+
 Prefer no extra app? Run `oc autostart on` and Termux itself opens straight into OpenCode. Undo with `oc autostart off`.
 
 ## Stop Android killing it (do this once)
@@ -92,6 +96,7 @@ The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the k
 | Re-test and use the fastest download mirror | `oc mirror` |
 | Health check: tells you what is wrong (screenshot it when asking for help) | `oc doctor` |
 | Open OpenCode every time Termux opens (on / off) | `oc autostart on` / `oc autostart off` |
+| Home-screen icon: re-create it and show the setup steps | `oc launcher` |
 | Add / list / remove API keys | `oc key` / `oc key list` / `oc key remove NAME` |
 | Pick which AI model to use (or let it pick) | `oc model` / `oc model auto` |
 

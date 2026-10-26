@@ -256,6 +256,50 @@ cmd_key() {
   esac
 }
 
+# ---- oc launcher: the home-screen icon (Termux:Widget) ----------------------------------------
+# The icon is a small script in ~/.shortcuts. It is generated here, not copied, because the first
+# line must be this phone's own bash path. `oc launcher` re-creates it at any time.
+launcher_write() {
+  local dir="$HOME/.shortcuts" f="$HOME/.shortcuts/OpenCode" pfx="${PREFIX:-/data/data/com.termux/files/usr}"
+  mkdir -p "$dir" || return 1
+  cat > "$f" <<EOF
+#!$pfx/bin/bash
+# Home-screen shortcut created by the OpenCode starter kit. Re-create it with:  oc launcher
+# It says what went wrong instead of closing instantly, because a widget window vanishes on error.
+export PATH="$pfx/bin:\$PATH"
+cd "\$HOME" 2>/dev/null || true
+oc
+rc=\$?
+if [ \$rc -ne 0 ]; then
+  echo
+  echo "OpenCode did not start (code \$rc)."
+  echo "In Termux run:  oc doctor     and screenshot it."
+  echo "This closes itself in 30 seconds (tap to close now)."
+  read -r -t 30 _ || true
+fi
+EOF
+  chmod 755 "$f"
+}
+
+cmd_launcher() {
+  launcher_write || { echo "could not write $HOME/.shortcuts/OpenCode"; return 1; }
+  [ "${1:-}" = --quiet ] && return 0
+  echo "Home-screen icon ready:"
+  echo "  $HOME/.shortcuts/OpenCode"
+  echo
+  cat <<'EOF'
+To put it on your home screen (once):
+ 1. Install the free Termux:Widget app - same source as Termux (GitHub or F-Droid).
+ 2. Android Settings > Apps > Termux > Display over other apps > Allow.
+ 3. Long-press an empty spot on the home screen > Widgets > Termux:Widget >
+    drag the Shortcut widget out > tap OpenCode.
+
+Nothing happened when you tapped it? Step 2 is almost always the reason.
+
+No extra app? Use  oc autostart on  instead: Termux then opens straight into OpenCode.
+EOF
+}
+
 # oc autostart on   open OpenCode automatically whenever you open Termux
 # oc autostart off  go back to a plain Termux prompt
 BASHRC="$HOME/.bashrc"
@@ -291,6 +335,7 @@ cmd_doctor() {
   if grep -qs 'opencode/bin' "$ROOTFS/root/.bashrc"; then good "opencode on the PATH in a plain Debian shell"; else say "WARN" "plain Debian shells need the full path to opencode: run the installer again to add it"; fi
   if [ -f "$HOME/.tmux.conf" ] && [ -f "$HOME/.tmux-menu.conf" ]; then good "tap menu installed"; else fail "tap menu files missing: run the installer again"; fi
   if [ -x "$BIN/oc-pane" ] && [ -x "$BIN/tmux-tap" ]; then good "window buttons helper installed"; else fail "oc-pane / tmux-tap missing: run the installer again"; fi
+  if [ -x "$HOME/.shortcuts/OpenCode" ]; then good "home-screen icon script present"; else say "WARN" "home-screen icon missing: run  oc launcher"; fi
   if [ -d "$HOME/storage/shared" ]; then good "phone storage connected (reports go to the Research folder)"; else say "WARN" "phone storage not connected: run termux-setup-storage"; fi
   pf="${PREFIX:-/data/data/com.termux/files/usr}/etc/apt/sources.list"
   [ -f "$pf" ] && say "info" "download mirror: $(sed -n 's/^deb \([^ ]*\) .*/\1/p' "$pf" | head -n1 | sed 's#https://##')"
@@ -336,6 +381,7 @@ case "$cmd" in
           else echo "no session called '$n' is running (see: oc ls)"; fi ;;
   key)    shift; cmd_key "$@" ;;
   model)  shift; cmd_model "$@" ;;
+  launcher) shift; cmd_launcher "$@" ;;
   autostart) shift; cmd_autostart "$@" ;;
   doctor) cmd_doctor ;;
   mirror) m="${PREFIX:-/data/data/com.termux/files/usr}/bin/oc-mirror"
@@ -363,6 +409,7 @@ oc model NAME    use one directly, e.g. opencode/deepseek-v4.1-flash-free
 oc mirror        re-test and switch to the fastest Termux download mirror
 oc doctor        check that everything works and print a report (screenshot it for help)
 oc autostart on  open OpenCode whenever Termux opens (off: back to a normal prompt)
+oc launcher      re-create the home-screen icon script and show the setup steps
 oc shell         open a plain Debian shell
 oc update        update OpenCode
 Inside tmux: detach with Ctrl-b then d (OpenCode keeps running). Run oc again to come back.

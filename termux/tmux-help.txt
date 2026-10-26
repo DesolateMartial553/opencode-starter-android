@@ -35,4 +35,5 @@ TYPE THESE IN TERMUX (not inside OpenCode)
   oc            start / come back          oc ls     list sessions
   oc new NAME   a second session           oc kill   end a session
   oc key        add free API keys          oc mirror faster downloads
+  oc model      choose the AI model         oc launcher home-screen icon
   oc help       the full list
