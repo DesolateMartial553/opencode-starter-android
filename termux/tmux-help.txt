@@ -4,7 +4,7 @@ OPENCODE ON YOUR PHONE: QUICK HELP            (q = close this page)
 THE BAR AT THE TOP (just tap it)
   ≡ MENU        every action in one list
   1:OpenCode    your windows: tap one to switch to it
-  + NEW         open a new window
+  + NEW         open a second OpenCode window
   LEAVE         step away; OpenCode keeps working
 
 LEAVING AND COMING BACK
@@ -17,10 +17,15 @@ SCROLLING
 
 KEYS (only if you prefer typing them; tap CTRL on the extra row, then b)
   Ctrl-b Space   the menu            Ctrl-b ?   this help
-  Ctrl-b c       new window          Ctrl-b n / p   next / previous window
+  Ctrl-b c       new OpenCode window Ctrl-b n / p   next / previous window
   Ctrl-b |       split left/right    Ctrl-b -       split top/bottom
   Ctrl-b z       full-screen a pane  Ctrl-b x       close a pane
   Ctrl-b r       reload tmux settings
+
+WINDOWS (each one runs its own OpenCode)
+  Tap a tab on the bar to switch. Tap + NEW, or MENU > New OpenCode window.
+  MENU > New plain shell window gives an ordinary Debian shell for commands.
+  Two OpenCode windows at once use more memory: on 8 GB, keep it to two.
 
 IF SOMETHING LOOKS STUCK
   Tap MENU > Scroll back, then q.   Or tap LEAVE and type  oc  again.

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Handles a tap on the top bar of the phone tmux UI.
+# tmux.conf calls it as:   tmux-tap "<range>"
+# where <range> is one of:  menu | new | leave | window|N
+# Doing it in a script keeps the tmux binding readable (that nested if/F format was unreadable and broken).
+set -u
+range=${1:-}
+
+case "$range" in
+  menu)   exec tmux source-file "$HOME/.tmux-menu.conf" ;;
+  new)    exec tmux new-window -n OpenCode 'oc-pane || exec bash' ;;
+  leave)  exec tmux detach-client ;;
+  window\|*)
+          index=${range#window|}
+          case "$index" in ''|*[!0-9]*) exit 0 ;; esac   # window is still being created
+          exec tmux select-window -t ":$index" ;;
+  *)      exit 0 ;;                                      # clock, session name, empty space: nothing to do
+esac

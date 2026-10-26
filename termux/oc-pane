@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Starts OpenCode inside the Debian proot, in the current terminal.
+# Used by `oc` (first window), by `oc restart`, and by the + NEW button in the tmux bar, so there is one
+# single way to start it. Everything it needs is worked out here instead of being repeated in three places.
+set -u
+
+# already inside Debian (prompt root@localhost): proot cannot start inside itself
+if [ -f /etc/debian_version ]; then
+  echo "You are already inside Debian here. Type  exit  first, then run  oc-pane  again."
+  read -r _ || true
+  exit 1
+fi
+
+DISTRO=debian
+
+# make the phone's shared storage visible inside Debian as ~/shared (reports land in ~/shared/Research)
+bind_args() {
+  if [ -d "$HOME/storage/shared" ]; then printf '%s' "--bind $HOME/storage/shared:/root/shared"; fi
+}
+
+exec proot-distro login "$DISTRO" --shared-tmp $(bind_args) -- bash -l /root/.oc-start.sh

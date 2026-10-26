@@ -66,9 +66,9 @@ tmux is what keeps OpenCode alive. You don't need to learn keys: use the bar at 
 
 | Tap | What it does |
 |---|---|
-| **≡ MENU** (top left, or the `MENU` key above the keyboard) | list of every action: new window, split, full-screen, scroll, rename, close, leave, help |
-| **1:OpenCode**, **2:...** | switch to that window |
-| **+ NEW** | open a new window |
+| **≡ MENU** (top left, or the `MENU` key above the keyboard) | list of every action: new OpenCode window, plain shell, split, full-screen, scroll, rename, close, leave, help |
+| **1:OpenCode**, **2:...** | tap a tab to switch to that window |
+| **+ NEW** | open a second OpenCode window |
 | **LEAVE** | step away; OpenCode keeps running (type `oc` to return) |
 | swipe up/down | scroll back through the answer |
 
@@ -82,7 +82,7 @@ The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the k
 | Leave it running in the background | `Ctrl-b` then `d` (detach) |
 | Come back | type `oc` |
 | Scroll up | swipe with a finger (or `Ctrl-b` `[`, then `q` to exit) |
-| New window / next / previous | `Ctrl-b c` / `Ctrl-b n` / `Ctrl-b p` |
+| New OpenCode window / next / previous | `Ctrl-b c` / `Ctrl-b n` / `Ctrl-b p` |
 | Split screen | `Ctrl-b "` (top/bottom), `Ctrl-b %` (left/right) |
 | Second separate session | `oc new NAME` |
 | Restart after adding a key or updating | `oc restart` |

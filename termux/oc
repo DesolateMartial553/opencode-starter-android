@@ -22,19 +22,19 @@ bind_args() {
   if [ -d "$HOME/storage/shared" ]; then printf '%s' "--bind $HOME/storage/shared:/root/shared"; fi
 }
 
-# the command tmux runs: log in to Debian and start OpenCode via /root/.oc-start.sh
-# (.oc-start.sh keeps the window open and explains any crash itself, so nothing is repeated here)
-start_cmd() {
-  printf '%s' "proot-distro login $DISTRO --shared-tmp $(bind_args) -- bash -l /root/.oc-start.sh"
-}
+# the command tmux runs: oc-pane logs in to Debian and starts OpenCode via /root/.oc-start.sh
+# (oc-pane keeps the window open and explains any crash itself, so nothing is repeated here)
+start_cmd() { printf '%s' "oc-pane || exec bash"; }
 
 # refuse to open a dead window: if something is missing, say exactly what, and stop
 preflight() {
-  local bad=""
+  local bad="" BIN="${PREFIX:-/data/data/com.termux/files/usr}/bin"
   [ -d "$ROOTFS/root" ] || bad="$bad
   - Debian is not installed yet."
   [ -x "$ROOTFS/root/.oc-start.sh" ] || bad="$bad
   - The OpenCode launcher is missing inside Debian."
+  [ -x "$BIN/oc-pane" ] || bad="$bad
+  - The oc-pane helper is missing in Termux."
   if [ ! -x "$ROOTFS/root/.opencode/bin/opencode" ] && [ ! -x "$ROOTFS/usr/local/bin/opencode" ] && [ ! -x "$ROOTFS/usr/bin/opencode" ]; then
     bad="$bad
   - OpenCode is not installed inside Debian."
@@ -273,7 +273,7 @@ cmd_autostart() {
 
 # ---- oc doctor: check everything and print a report you can screenshot --------------------------
 cmd_doctor() {
-  local bad=0 pf
+  local bad=0 pf BIN="${PREFIX:-/data/data/com.termux/files/usr}/bin"
   say() { printf '  %-5s %s\n' "$1" "$2"; }
   good() { say "OK" "$1"; }
   fail() { say "FAIL" "$1"; bad=$((bad + 1)); }
@@ -290,6 +290,7 @@ cmd_doctor() {
   fi
   if grep -qs 'opencode/bin' "$ROOTFS/root/.bashrc"; then good "opencode on the PATH in a plain Debian shell"; else say "WARN" "plain Debian shells need the full path to opencode: run the installer again to add it"; fi
   if [ -f "$HOME/.tmux.conf" ] && [ -f "$HOME/.tmux-menu.conf" ]; then good "tap menu installed"; else fail "tap menu files missing: run the installer again"; fi
+  if [ -x "$BIN/oc-pane" ] && [ -x "$BIN/tmux-tap" ]; then good "window buttons helper installed"; else fail "oc-pane / tmux-tap missing: run the installer again"; fi
   if [ -d "$HOME/storage/shared" ]; then good "phone storage connected (reports go to the Research folder)"; else say "WARN" "phone storage not connected: run termux-setup-storage"; fi
   pf="${PREFIX:-/data/data/com.termux/files/usr}/etc/apt/sources.list"
   [ -f "$pf" ] && say "info" "download mirror: $(sed -n 's/^deb \([^ ]*\) .*/\1/p' "$pf" | head -n1 | sed 's#https://##')"

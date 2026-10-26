@@ -17,7 +17,7 @@ restore() { # restore path
 ask() { local a; [ "$DRY" = 1 ] && return 1; ( : </dev/tty ) 2>/dev/null || return 1; printf '%s [y/N] ' "$1" >/dev/tty; read -r a </dev/tty; case "$a" in y|Y|yes) return 0;; *) return 1;; esac; }
 
 tmux kill-server 2>/dev/null || true
-run rm -f "$PFX/bin/oc" "$HOME/.shortcuts/OpenCode"
+run rm -f "$PFX/bin/oc" "$PFX/bin/oc-pane" "$PFX/bin/tmux-tap" "$HOME/.shortcuts/OpenCode"
 [ -f "$HOME/.bashrc" ] && run sed -i '/^# >>> opencode-kit autostart >>>$/,/^# <<< opencode-kit autostart <<<$/d' "$HOME/.bashrc"
 [ -f "$HOME/.tmux.conf" ] && restore "$HOME/.tmux.conf"
 run rm -f "$HOME/.tmux-menu.conf" "$HOME/.tmux-help.txt"
