@@ -103,7 +103,14 @@ main() {
     note "[dry-run] would download https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz"
   else
     work=$(mktemp -d)
-    curl -fsSL "https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz" | tar -xz -C "$work"
+    # a phone connection can drop mid-download, so try a few times before giving up
+    tries=0
+    until curl -fsSL "https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz" | tar -xz -C "$work"; do
+      tries=$((tries + 1))
+      [ "$tries" -ge 3 ] && { rm -rf "$work"; die "could not download the kit files. Check your connection and run the installer again."; }
+      note "download interrupted; trying again ($tries of 2 retries used)"
+      sleep 3
+    done
     kit="$work/$(ls "$work" | head -n 1)"
     ok "downloaded"
   fi
@@ -193,6 +200,19 @@ echo "OpenCode: $(opencode --version 2>/dev/null || echo installed)"
 if command -v npm >/dev/null 2>&1; then (cd "$HOME/.config/opencode" && npm install --no-audit --no-fund --silent) || true; fi'
   if ! run proot-distro login "$DISTRO" -- bash -c "$PROVISION"; then
     die "setting up OpenCode inside Debian failed. Check your internet and run this installer again (it is safe to repeat). If it keeps failing, copy the last lines and ask for help."
+  fi
+
+  # put OpenCode on the PATH for every Debian shell, so `opencode` also works in  oc shell
+  if [ "$DRY" = 1 ]; then
+    note "[dry-run] would add OpenCode to the PATH in $ROOTFS/root/.bashrc"
+  elif ! grep -q 'opencode-kit PATH' "$ROOTFS/root/.bashrc" 2>/dev/null; then
+    cat >> "$ROOTFS/root/.bashrc" <<'OCPATH'
+
+# >>> opencode-kit PATH >>>
+export PATH="$HOME/.opencode/bin:/usr/local/bin:$PATH"
+# <<< opencode-kit PATH <<<
+OCPATH
+    ok "opencode added to the PATH in Debian shells"
   fi
 
   # --- 4. Termux side: tmux, extra keys, launcher -------------------------------------------

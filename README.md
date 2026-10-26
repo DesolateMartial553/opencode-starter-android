@@ -85,8 +85,9 @@ The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the k
 | New window / next / previous | `Ctrl-b c` / `Ctrl-b n` / `Ctrl-b p` |
 | Split screen | `Ctrl-b "` (top/bottom), `Ctrl-b %` (left/right) |
 | Second separate session | `oc new NAME` |
+| Restart after adding a key or updating | `oc restart` |
 | List / end sessions | `oc ls` / `oc kill` |
-| Plain Debian shell | `oc shell` |
+| Plain Debian shell | `oc shell` (`opencode` works in there too) |
 | Update OpenCode | `oc update` |
 | Re-test and use the fastest download mirror | `oc mirror` |
 | Health check: tells you what is wrong (screenshot it when asking for help) | `oc doctor` |
@@ -110,6 +111,7 @@ The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the k
 - **Installer stopped halfway** - run it again; it is safe to repeat and keeps backups.
 - **"Allow storage" was missed** - run `termux-setup-storage`, then re-run the installer.
 - **OpenCode won't start in Debian** - `oc shell`, then `opencode --version`. Paste any error when asking for help.
+- **OpenCode closes the moment it opens** - the window now stays open and says whether it crashed and after how many seconds. Run `oc doctor`, then `oc update`, and send the screenshot if it keeps happening.
 - **Undo everything** - `bash uninstall.sh` (download it from this repo).
 
 ## Maintainers

@@ -10,6 +10,7 @@ if [ -f /etc/debian_version ]; then
 fi
 DISTRO=debian
 SESSION=opencode
+REPO=DesolateMartial553/opencode-starter-android   # used by the "run the installer" hints
 PD="${PREFIX:-/data/data/com.termux/files/usr}/var/lib/proot-distro"
 # proot-distro 5+ keeps Debian in containers/NAME/rootfs; older versions used installed-rootfs/NAME
 if [ -d "$PD/containers/$DISTRO/rootfs" ]; then ROOTFS="$PD/containers/$DISTRO/rootfs"; else ROOTFS="$PD/installed-rootfs/$DISTRO"; fi
@@ -22,9 +23,31 @@ bind_args() {
 }
 
 # the command tmux runs: log in to Debian and start OpenCode via /root/.oc-start.sh
+# (.oc-start.sh keeps the window open and explains any crash itself, so nothing is repeated here)
 start_cmd() {
-  # if OpenCode stops with an error, keep the window open so the message can be read (and screenshotted)
-  printf '%s' "proot-distro login $DISTRO --shared-tmp $(bind_args) -- bash -l /root/.oc-start.sh; rc=\$?; if [ \$rc -ne 0 ]; then echo; echo \"OpenCode stopped (code \$rc). Run  oc doctor  for a health check, then press Enter.\"; read -r _; fi"
+  printf '%s' "proot-distro login $DISTRO --shared-tmp $(bind_args) -- bash -l /root/.oc-start.sh"
+}
+
+# refuse to open a dead window: if something is missing, say exactly what, and stop
+preflight() {
+  local bad=""
+  [ -d "$ROOTFS/root" ] || bad="$bad
+  - Debian is not installed yet."
+  [ -x "$ROOTFS/root/.oc-start.sh" ] || bad="$bad
+  - The OpenCode launcher is missing inside Debian."
+  if [ ! -x "$ROOTFS/root/.opencode/bin/opencode" ] && [ ! -x "$ROOTFS/usr/local/bin/opencode" ] && [ ! -x "$ROOTFS/usr/bin/opencode" ]; then
+    bad="$bad
+  - OpenCode is not installed inside Debian."
+  fi
+  if [ -n "$bad" ]; then
+    echo "OpenCode cannot start yet:$bad"
+    echo
+    echo "Run the installer (safe to repeat: it skips what is already done):"
+    echo "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | bash"
+    echo
+    echo "Already installed and just wants a check?  oc doctor"
+    return 1
+  fi
 }
 
 wake_lock() {
@@ -73,7 +96,7 @@ key_set() { # key_set name  (asks for the key; nothing shows as you type)
     proot-distro login "$DISTRO" -- bash -c 'command -v npx >/dev/null 2>&1 || { apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs npm; }' \
       || echo "could not install Node.js for Firecrawl: run 'oc shell' then 'apt-get install nodejs npm'"
   fi
-  echo "saved $LABEL key. It applies the next time OpenCode starts (oc kill, then oc)."
+  echo "saved $LABEL key. Restart OpenCode to use it:  oc restart"
 }
 
 key_remove() {
@@ -133,6 +156,11 @@ cmd_doctor() {
   if [ -x "$ROOTFS/root/.oc-start.sh" ]; then good "launcher script present"; else fail "launcher script missing in Debian: run the installer again"; fi
   if [ -f "$CONF" ]; then good "OpenCode config present"; else fail "OpenCode config missing: run the installer again"; fi
   if [ -x "$ROOTFS/root/.opencode/bin/opencode" ]; then good "OpenCode installed"; else fail "OpenCode is not installed inside Debian: run the installer again"; fi
+  if [ -x "$ROOTFS/root/.opencode/bin/opencode" ]; then
+    local v; v=$(timeout 25 proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode --version' 2>/dev/null | tail -n1)
+    [ -n "$v" ] && say "info" "version: $v"
+  fi
+  if grep -qs 'opencode/bin' "$ROOTFS/root/.bashrc"; then good "opencode on the PATH in a plain Debian shell"; else say "WARN" "plain Debian shells need the full path to opencode: run the installer again to add it"; fi
   if [ -f "$HOME/.tmux.conf" ] && [ -f "$HOME/.tmux-menu.conf" ]; then good "tap menu installed"; else fail "tap menu files missing: run the installer again"; fi
   if [ -d "$HOME/storage/shared" ]; then good "phone storage connected (reports go to the Research folder)"; else say "WARN" "phone storage not connected: run termux-setup-storage"; fi
   pf="${PREFIX:-/data/data/com.termux/files/usr}/etc/apt/sources.list"
@@ -149,21 +177,48 @@ cmd_doctor() {
   [ "$bad" -eq 0 ]
 }
 
+# already inside a tmux session: a second one nests, and the tap bar gets confusing
+in_tmux() {
+  if [ -n "${TMUX:-}" ]; then
+    echo "You are already inside tmux (the ≡ MENU bar is at the top)."
+    echo "Use this window, or leave with Ctrl-b then d and run  oc  in Termux."
+    return 0
+  fi
+  return 1
+}
+
 cmd=${1:-start}
 case "$cmd" in
-  start)  wake_lock; exec tmux new-session -A -s "$SESSION" -n OpenCode "$(start_cmd)" ;;   # -A: attach if it exists, else create
-  new)    wake_lock; exec tmux new-session -A -s "${2:?usage: oc new NAME}" -n OpenCode "$(start_cmd)" ;;
-  ls)     tmux ls 2>/dev/null || echo "no sessions running" ;;
-  kill)   tmux kill-session -t "${2:-$SESSION}" ;;
+  start)  in_tmux && exit 1
+          preflight || exit 1
+          wake_lock; exec tmux new-session -A -s "$SESSION" -n OpenCode "$(start_cmd)" ;;   # -A: attach if it exists, else create
+  new)    in_tmux && exit 1
+          preflight || exit 1
+          wake_lock; exec tmux new-session -A -s "${2:?usage: oc new NAME}" -n OpenCode "$(start_cmd)" ;;
+  restart) # end the session, then start it again (after oc key, oc update, or a fix)
+          shift; n="${1:-$SESSION}"
+          [ -n "${TMUX:-}" ] && { echo "Run  oc restart  in Termux, not inside the session it restarts."; exit 1; }
+          if tmux has-session -t "=$n" 2>/dev/null; then tmux kill-session -t "=$n"; echo "restarted $n"; else echo "starting $n"; fi
+          preflight || exit 1
+          wake_lock; exec tmux new-session -A -s "$n" -n OpenCode "$(start_cmd)" ;;
+  ls)     tmux ls 2>/dev/null || echo "no sessions running (start one with: oc)" ;;
+  kill)   n="${2:-$SESSION}"
+          if tmux has-session -t "=$n" 2>/dev/null; then tmux kill-session -t "=$n"; echo "ended session $n"
+          else echo "no session called '$n' is running (see: oc ls)"; fi ;;
   key)    shift; cmd_key "$@" ;;
   autostart) shift; cmd_autostart "$@" ;;
   doctor) cmd_doctor ;;
-  mirror) exec bash "${PREFIX:-/data/data/com.termux/files/usr}/bin/oc-mirror" --update "${@:2}" ;;
+  mirror) m="${PREFIX:-/data/data/com.termux/files/usr}/bin/oc-mirror"
+          [ -f "$m" ] || { echo "the mirror tool is missing: run the installer again"; exit 1; }
+          exec bash "$m" --update "${@:2}" ;;
   shell)  exec proot-distro login "$DISTRO" --shared-tmp $(bind_args) ;;
-  update) exec proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode upgrade || npm install -g opencode-ai@latest' ;;
+  update) proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode upgrade || npm install -g opencode-ai@latest' || {
+            echo "update failed; try again on a better connection"; exit 1; }
+          echo; echo "updated. Restart OpenCode to use it:  oc restart" ;;
   help|-h|--help)
     cat <<'EOF'
 oc               start OpenCode (or reattach if it is already running)
+oc restart       restart the session (after adding a key or updating)
 oc new NAME      start a second, separate session called NAME
 oc ls            list running sessions
 oc kill [N]      end a session (default: opencode)

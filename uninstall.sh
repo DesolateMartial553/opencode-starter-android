@@ -25,6 +25,7 @@ run rm -f "$HOME/.tmux-menu.conf" "$HOME/.tmux-help.txt"
 command -v termux-reload-settings >/dev/null 2>&1 && run termux-reload-settings
 [ -d "$ROOTFS/root/.config/opencode" ] && restore "$ROOTFS/root/.config/opencode"
 run rm -f "$ROOTFS/root/.oc-start.sh"
+[ -f "$ROOTFS/root/.bashrc" ] && run sed -i '/^# >>> opencode-kit PATH >>>$/,/^# <<< opencode-kit PATH <<<$/d' "$ROOTFS/root/.bashrc"
 if [ -f "$ROOTFS/root/.config/opencode-keys.env" ] && ask "Delete your saved API keys too?"; then run rm -f "$ROOTFS/root/.config/opencode-keys.env"; fi
 if [ -d "$ROOTFS" ] && ask "Delete the whole Debian system (frees ~1 GB, removes OpenCode and ~/research inside it)?"; then run proot-distro remove debian; fi
 echo "Done. Termux packages (tmux, proot-distro) were left installed."
