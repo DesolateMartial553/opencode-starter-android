@@ -115,6 +115,134 @@ key_list() {
   done
 }
 
+# ---- oc model: choose which AI model OpenCode uses ------------------------------------------
+# Model ids look like  provider/name . The free ones work with no key at all.
+MODEL_CHOICES='opencode/deepseek-v4.1-flash-free|deepseek v4.1 flash|free - general use (the default)
+opencode/glm-5.3-flash-free|glm 5.3 flash|free - quick answers
+opencode/mimo-v2.6-flash-free|mimo v2.6 flash|free - long documents
+opencode/nemotron-3.5-lightning-free|nemotron 3.5 lightning|free - fastest replies
+opencode/beam-free|beam|free - small, simple jobs'
+# the same list without the labels, in the order "auto" tries them
+AUTO_MODELS="opencode/deepseek-v4.1-flash-free opencode/glm-5.3-flash-free opencode/mimo-v2.6-flash-free opencode/nemotron-3.5-lightning-free opencode/beam-free"
+
+model_current() { sed -n 's/^[[:space:]]*"model":[[:space:]]*"\([^"]*\)".*/\1/p' "$CONF" 2>/dev/null | head -n1; }
+
+# read one line from the keyboard; falls back to stdin when there is no terminal (tests, pipes)
+ask_line() {
+  if ( : </dev/tty ) 2>/dev/null; then read -r "$1" </dev/tty || printf -v "$1" '%s' ""; else read -r "$1" || printf -v "$1" '%s' ""; fi
+}
+
+# rewrite the "model" line in opencode.json (the kit owns that file, so the line always looks the same)
+model_set() {
+  local m=$1
+  case "$m" in
+    */*) ;;
+    *) echo "a model looks like  provider/name  (for example: opencode/deepseek-v4.1-flash-free)"; return 1 ;;
+  esac
+  [ -f "$CONF" ] || { echo "the OpenCode config is missing: run the installer again"; return 1; }
+  sed -i -E "0,/^[[:space:]]*\"model\":/s|^([[:space:]]*\"model\":[[:space:]]*\")[^\"]*\"|\1$m\"|" "$CONF"
+  if [ "$(model_current)" = "$m" ]; then
+    echo "model set to $m"
+    echo "Restart OpenCode to use it:  oc restart"
+  else
+    echo "could not change the model automatically. The file is: $CONF"; return 1
+  fi
+}
+
+# ask the free model to reply; used by "oc model auto" to find one that works right now
+model_ping() { # model_ping MODEL
+  timeout 60 proot-distro login "$DISTRO" -- bash -lc "export PATH=\"\$HOME/.opencode/bin:\$PATH\"; opencode run --model '$1' 'reply with the single word ok'" 2>&1 | grep -qiw ok
+}
+
+model_auto() {
+  local m
+  echo "Testing the free models (up to a minute each; stop with Ctrl-C)..."
+  echo "Your current model: $(model_current)"
+  for m in $AUTO_MODELS; do
+    printf '  %-42s ' "$m"
+    if model_ping "$m"; then echo "works"; model_set "$m" >/dev/null && { echo; echo "auto: using $m"; echo "Restart OpenCode:  oc restart"; return 0; }
+    else echo "no answer"; fi
+  done
+  echo
+  echo "none of them answered. That is usually the connection, not the model."
+  echo "Try  oc doctor , or set one by hand:  oc model <provider/name>"
+  return 1
+}
+
+model_list() {
+  local out n
+  echo "Models available on this phone (this takes a few seconds)..."
+  out=$(timeout 90 proot-distro login "$DISTRO" -- bash -lc 'export PATH="$HOME/.opencode/bin:$PATH"; opencode models' 2>/dev/null) || out=""
+  if [ -z "$out" ]; then
+    echo "could not ask OpenCode for its list (it may need a restart first: oc restart)"
+    return 1
+  fi
+  # free ones always work; others need the matching key (google -> Gemini, openrouter -> OpenRouter)
+  printf '%s\n' "$out" | grep -E -- '-free$|:free$' | head -n 25 | sed 's/^/  /'
+  n=$(printf '%s\n' "$out" | grep -Ec -- '-free$|:free$' || true)
+  [ "${n:-0}" -gt 25 ] && echo "  ...and $((n - 25)) more free models"
+  echo
+  echo "Pick one with:  oc model provider/name     (or just run:  oc model)"
+}
+
+model_menu() {
+  local i=0 name label note choice num current extra=""
+  current=$(model_current)
+  echo
+  echo "  Current model: ${current:-not set}"
+  echo
+  echo "  Pick one (type the number, then Enter):"
+  while IFS='|' read -r name label note; do
+    [ -z "$name" ] && continue
+    i=$((i + 1))
+    printf '   %s  %-24s %s%s\n' "$i" "$label" "$note" "$([ "$name" = "$current" ] && echo '  <- now')"
+  done <<EOF
+$MODEL_CHOICES
+EOF
+  if [ -f "$KEYFILE" ] && grep -q '^export GOOGLE_GENERATIVE_AI_API_KEY=' "$KEYFILE"; then
+    i=$((i + 1)); printf '   %s  %-24s %s\n' "$i" "gemini flash lite" "your Gemini key"
+    extra="$extra google/gemini-flash-lite-latest"
+  fi
+  if [ -f "$KEYFILE" ] && grep -q '^export OPENROUTER_API_KEY=' "$KEYFILE"; then
+    i=$((i + 1)); printf '   %s  %-24s %s\n' "$i" "OpenRouter free" "your OpenRouter key"
+    extra="$extra openrouter/openrouter/free"
+  fi
+  printf '   a  %-24s %s\n' "auto" "test them and use the first that answers"
+  printf '   l  %-24s %s\n' "list all" "every model this phone can use"
+  printf '   0  %-24s %s\n' "cancel" ""
+  { printf '\n  Choice: ' >/dev/tty; } 2>/dev/null || printf '\n  Choice: '
+  ask_line choice
+  { printf '\n' >/dev/tty; } 2>/dev/null || true
+  case "$choice" in
+    0|"") echo "nothing changed"; return 0 ;;
+    a|A) model_auto ;;
+    l|L) model_list ;;
+    *[!0-9]*) echo "type a number, a, l or 0"; return 1 ;;
+    *)  # map the number back to a model id
+        num=$choice
+        if [ "$num" -le 5 ]; then
+          name=$(printf '%s\n' "$MODEL_CHOICES" | sed -n "${num}p" | cut -d'|' -f1)
+        else
+          name=$(printf '%s\n' $extra | sed -n "$((num - 5))p")
+        fi
+        [ -n "$name" ] || { echo "no choice $num"; return 1; }
+        model_set "$name" ;;
+  esac
+}
+
+# oc model           menu of models, with the current one shown
+# oc model NAME      set one directly (provider/name)
+# oc model auto      try the free models in turn and use the first that answers
+# oc model list      every model this phone can use
+cmd_model() {
+  case "${1:-}" in
+    "")     model_menu ;;
+    list)   model_list ;;
+    auto)   model_auto ;;
+    *)      model_set "$1" ;;
+  esac
+}
+
 # oc key            walk through every key you have not set yet (press Enter to skip each)
 # oc key NAME       set or replace one key
 # oc key list       show what is set (last 4 characters only)
@@ -206,6 +334,7 @@ case "$cmd" in
           if tmux has-session -t "=$n" 2>/dev/null; then tmux kill-session -t "=$n"; echo "ended session $n"
           else echo "no session called '$n' is running (see: oc ls)"; fi ;;
   key)    shift; cmd_key "$@" ;;
+  model)  shift; cmd_model "$@" ;;
   autostart) shift; cmd_autostart "$@" ;;
   doctor) cmd_doctor ;;
   mirror) m="${PREFIX:-/data/data/com.termux/files/usr}/bin/oc-mirror"
@@ -226,6 +355,10 @@ oc key           add free API keys (Gemini, OpenRouter, Tavily, Firecrawl); Ente
 oc key NAME      add or replace one key (gemini | openrouter | tavily | firecrawl)
 oc key list      show which keys are set
 oc key remove N  delete a key
+oc model         choose which AI model to use (free ones need no key)
+oc model auto    test the free models and switch to the first that answers
+oc model list    every model this phone can use
+oc model NAME    use one directly, e.g. opencode/deepseek-v4.1-flash-free
 oc mirror        re-test and switch to the fastest Termux download mirror
 oc doctor        check that everything works and print a report (screenshot it for help)
 oc autostart on  open OpenCode whenever Termux opens (off: back to a normal prompt)

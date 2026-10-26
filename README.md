@@ -93,8 +93,22 @@ The prefix is **Ctrl-b**: tap `CTRL` on the extra-keys row, then `b`, then the k
 | Health check: tells you what is wrong (screenshot it when asking for help) | `oc doctor` |
 | Open OpenCode every time Termux opens (on / off) | `oc autostart on` / `oc autostart off` |
 | Add / list / remove API keys | `oc key` / `oc key list` / `oc key remove NAME` |
+| Pick which AI model to use (or let it pick) | `oc model` / `oc model auto` |
 
 (`oc`, `oc ls` and the others are typed in Termux. `Ctrl-b ...` works while you are inside tmux.)
+
+## Which AI model it uses
+OpenCode is set to a free model, so it works with no account. To change it, run `oc model` and tap a number:
+
+| Choice | What it is |
+|---|---|
+| 1-5 | free models built in (deepseek, glm, mimo, nemotron, beam) - no key needed |
+| 6-7 | appear only if you saved a Gemini or OpenRouter key with `oc key` |
+| **a** auto | tests the free models one by one and switches to the first that answers (for when one is down or slow) |
+| **l** list | every model this phone can use |
+
+Changes apply after `oc restart`. You can also name one directly: `oc model opencode/deepseek-v4.1-flash-free`.
+OpenCode also has a fallback list, so if the model you picked stops answering it tries the next free one on its own.
 
 ## Notes for an 8 GB phone
 - OpenCode with cloud models is light (roughly 300-600 MB). Don't run local AI models.

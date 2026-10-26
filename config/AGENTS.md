@@ -34,3 +34,8 @@ research, SEO, summarising sources, and writing up findings.
 - Keep jobs light: no local AI models, no big downloads, no long-running builds. The phone has 8 GB of RAM
   shared with Android.
 - If the session may take a while, say so up front. The user can leave the app: tmux keeps it running.
+
+## Switching model
+- Never edit the model setting yourself. Tell the user to run `oc model` (a numbered list, then `oc restart`),
+  or `oc model auto` if replies are failing or very slow. Changes only apply after `oc restart`, and they run
+  that command in Termux, not here.
